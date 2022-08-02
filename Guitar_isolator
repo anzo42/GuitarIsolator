@@ -1,0 +1,133 @@
+ // Most part of this code is based on JS effects thtat comes by default with Reaper. All kudos to orginal creator(s) of fft-filter and hard limiter.
+desc: Guitar isolator
+in_pin:Left input
+in_pin:Right input
+out_pin:Left output
+out_pin:Right output
+
+slider1:10
+slider2:0<0,1,1{Enabled,Disabled}>Isolation
+slider3:100<0,100,1>Focus
+slider4:0<0,1,1{Enabled,Disabled}>Filter
+slider5:4000<10,24000,10>High attenuation freq.
+slider6:-15<-120,0>Attenuation level (dB)
+//slider7:1<0,1,1{Disabled, Enabled}>  Limiter //Clipping debug 
+
+@init 
+fftsize=-1;
+
+@slider
+cutOffFrequency = slider5 / 24000;
+
+fftsize != (0|(2^slider1)) ? 
+  (
+    fftsize=(2^slider1)|0;
+    bpos=0; 
+    curblock=0;
+    lastblock=65536;
+    window=120000;
+    hist=240000;
+    invfsize=1/fftsize;
+    hfftsize=fftsize*0.5;
+    tmp=0;
+    tsc=3.14159/hfftsize;
+    loop(hfftsize, 
+      window[tmp]=0.42-0.50*cos(tmp*tsc)+0.08*cos(2*tmp*tsc);
+      tmp+=1;
+    );
+  );
+
+adjust = 2 ^ (slider6/8) * invfsize;
+lowband=hfftsize*cutOffFrequency;
+hiband=hfftsize;
+lowband = min(max(lowband,0),hfftsize);
+hiband = min(max(hiband,0),hfftsize);
+lowband > hiband ? ( t=hiband; hiband=lowband; lowband=t; );
+lowband *= 2;
+hiband *= 2;
+pdc_top_ch=2;
+pdc_bot_ch=0;
+pdc_delay=fftsize;
+focus = slider3/100;
+volume = 2^(slider3/200);
+limit = 0.95;
+
+@sample
+slider7 == 1 ?
+(
+  spl0=min(max(spl0,-limit),limit);
+  spl1=min(max(spl1,-limit),limit);
+);
+
+slider2 == 0 ? 
+(
+  aa = (spl0+spl1)*0.5*volume;
+  bb = (spl0-spl1)*0.5*volume;
+  spl0= bb*focus+aa*(focus-1);
+  spl1= bb*focus+aa*(focus-1);
+
+  slider7 == 1 ? 
+  (
+    spl0=min(max(spl0,-limit),limit);
+    spl1=min(max(spl1,-limit),limit);
+  );
+);
+
+bpos >= fftsize ? 
+(
+  t=curblock;
+  curblock=lastblock;
+  lastblock=t;
+
+  fft(curblock,fftsize);
+  fft_permute(curblock,fftsize);
+  i=0;
+  loop(hfftsize, 
+    i2=fftsize*2-i-2;
+    i >= lowband && i<= hiband ? 
+    (
+      curblock[i]*=adjust; 
+      curblock[i+1]*=adjust;
+      curblock[i2]*=adjust; 
+      curblock[i2+1]*=adjust;
+    ) : 
+    ( 
+      curblock[i] *= invfsize; 
+      curblock[i+1] *= invfsize; 
+      curblock[i2] *= invfsize; 
+      curblock[i2+1] *= invfsize; 
+    );
+    i+=2; 
+  );
+  fft_ipermute(curblock,fftsize); 
+  ifft(curblock,fftsize);
+  bpos=0;
+);
+
+w=window[bpos*0.5];
+iw=1-w;
+
+os0=spl0;
+os1=spl1;
+
+slider4 == 0 ? 
+(
+  spl0=(curblock[bpos]*w + lastblock[fftsize+bpos]*iw);
+  spl1=(curblock[bpos+1]*w + lastblock[fftsize+bpos+1]*iw);
+);
+
+lastblock[bpos]=hist[bpos];
+lastblock[bpos+1]=hist[bpos+1];
+lastblock[fftsize+bpos]=os0;
+lastblock[fftsize+bpos+1]=os1;
+
+hist[bpos]=os0;
+hist[bpos+1]=os1;
+bpos+=2;
+
+slider7 == 1 ? 
+(
+  spl0=min(max(spl0,-limit),limit);
+  spl1=min(max(spl1,-limit),limit);
+);
+ 
