@@ -9,7 +9,7 @@ slider1:10
 slider2:0<0,1,1{Enabled,Disabled}>Isolation
 slider3:100<0,100,1>Focus
 slider4:0<0,1,1{Enabled,Disabled}>Filter
-slider5:4000<10,24000,10>High attenuation freq.
+slider5:4000<10,24000,10>High shelf frequency
 slider6:-15<-120,0>Attenuation level (dB)
 //slider7:1<0,1,1{Disabled, Enabled}>  Limiter //Clipping debug 
 
