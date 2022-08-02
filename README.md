@@ -1,5 +1,5 @@
 # Guitar Isolator
-![Preview](https://github.com/frantick/GuitarIsolator/raw/ce96b83dc05b72eb9b1dce25ce6294a56d130238/Guitar_Isolator_preview.png)
+![Preview](https://github.com/frantick/GuitarIsolator/raw/main/Guitar_Isolator_Preview.png)
 
 This is JS plugin for Reaper DAW that can be used as a learning tool/transcribe aid. 
 
